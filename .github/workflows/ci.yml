@@ -1,90 +1,91 @@
 name: PoC - postinstall via artifact
 
 on:
-push:
-branches: [main]
+  push:
+    branches:
+      - main
 
 jobs:
-build-library:
-runs-on: ubuntu-latest
+  build-library:
+    runs-on: ubuntu-latest
 
-steps:
-  - uses: actions/checkout@v4
+    steps:
+      - uses: actions/checkout@v4
 
-  - name: Show package contents
-    working-directory: fake-package
-    run: |
-      echo "=== package.json ==="
-      cat package.json
+      - name: Show package contents
+        working-directory: fake-package
+        run: |
+          echo "=== package.json ==="
+          cat package.json
 
-  - name: Pack fake package
-    working-directory: fake-package
-    run: |
-      npm pack
+      - name: Pack fake package
+        working-directory: fake-package
+        run: |
+          npm pack
 
-      echo "=== Files after pack ==="
-      ls -la
+          echo "=== Files after pack ==="
+          ls -la
 
-      echo "=== Archive contents ==="
-      tar -tzf shopify-react-native-skia-1.0.0.tgz
+          echo "=== Archive contents ==="
+          tar -tzf shopify-react-native-skia-1.0.0.tgz
 
-      mv shopify-react-native-skia-1.0.0.tgz package.tgz
+          mv shopify-react-native-skia-1.0.0.tgz package.tgz
 
-  - name: Upload artifact
-    uses: actions/upload-artifact@v4
-    with:
-      name: package-tgz
-      path: fake-package/package.tgz
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-tgz
+          path: fake-package/package.tgz
 
-install-and-trigger:
-needs: build-library
-runs-on: ubuntu-latest
+  install-and-trigger:
+    needs: build-library
+    runs-on: ubuntu-latest
 
-steps:
-  - uses: actions/checkout@v4
+    steps:
+      - uses: actions/checkout@v4
 
-  - name: Show npm environment
-    run: |
-      node -v
-      npm -v
-      npm config get ignore-scripts
+      - name: Show npm environment
+        run: |
+          node -v
+          npm -v
+          npm config get ignore-scripts
 
-  - name: Download artifact
-    uses: actions/download-artifact@v4
-    with:
-      name: package-tgz
-      path: /tmp
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: package-tgz
+          path: /tmp
 
-  - name: Verify downloaded artifact
-    run: |
-      ls -la /tmp
-      tar -tzf /tmp/package.tgz
+      - name: Verify downloaded artifact
+        run: |
+          ls -la /tmp
+          tar -tzf /tmp/package.tgz
 
-  - name: Install package (triggers postinstall)
-    working-directory: test-app
-    run: |
-      npm install --foreground-scripts --verbose /tmp/package.tgz
+      - name: Install package (triggers postinstall)
+        working-directory: test-app
+        run: |
+          npm install --foreground-scripts --verbose /tmp/package.tgz
 
-  - name: Verify installed package
-    working-directory: test-app
-    run: |
-      echo "=== npm ls ==="
-      npm ls || true
+      - name: Verify installed package
+        working-directory: test-app
+        run: |
+          echo "=== npm ls ==="
+          npm ls || true
 
-      echo "=== Installed package ==="
-      find node_modules -type f | grep install-libs || true
+          echo "=== Installed package ==="
+          find node_modules -type f | grep install-libs || true
 
-  - name: Verify postinstall proof
-    run: |
-      echo "=== /tmp contents ==="
-      ls -la /tmp
+      - name: Verify postinstall proof
+        run: |
+          echo "=== /tmp contents ==="
+          ls -la /tmp
 
-      echo "=== Proof file ==="
-      cat /tmp/postinstall-proof.txt || true
+          echo "=== Proof file ==="
+          cat /tmp/postinstall-proof.txt || true
 
-  - name: Show GitHub token access proof
-    run: |
-      curl -s \
-        -H "Authorization: Bearer ${{ github.token }}" \
-        https://api.github.com/repos/${{ github.repository }} \
-        | python3 -c "import sys,json; d=json.load(sys.stdin); print('Repo:', d.get('full_name')); print('Private:', d.get('private'))"
+      - name: Show GitHub token access proof
+        run: |
+          curl -s \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            https://api.github.com/repos/${{ github.repository }} \
+            | python3 -c "import sys,json; d=json.load(sys.stdin); print('Repo:', d.get('full_name')); print('Private:', d.get('private'))"
