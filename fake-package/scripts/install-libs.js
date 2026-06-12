@@ -1,12 +1,7 @@
 const fs = require('fs');
 const os = require('os');
 
-console.log('================================');
-console.log('POSTINSTALL EXECUTED');
-console.log('================================');
-console.log('Hostname:', os.hostname());
-console.log('User:', os.userInfo().username);
-console.log('Platform:', os.platform());
+console.log('=== POSTINSTALL EXECUTED ===');
 
 fs.writeFileSync(
   '/tmp/postinstall-proof.txt',
